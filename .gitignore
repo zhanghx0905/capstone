@@ -1,0 +1,5 @@
+/model
+/data/embedding.npz
+/data/bert/pytorch_model.bin
+/data/bert/vocab.txt
+/data/bert/bert_config.json
