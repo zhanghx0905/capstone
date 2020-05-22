@@ -56,7 +56,7 @@ python .\run.py --config .\config\BERT.json
 
 [fastText](https://arxiv.org/pdf/1607.01759.pdf)是一种简洁高效的文本分类模型，其思路是将所有输入文本的(也可包含2-gram和3-gram信息)词向量取平均后，经过全连接层输出。虽然简单，但往往比许多深度模型更有效。
 
-![fastText](doc\fastText.png)
+![fastText](./doc/fastText.png)
 
 ### TextCNN
 
@@ -64,13 +64,13 @@ python .\run.py --config .\config\BERT.json
 
 卷积层能有效提取局部的语义信息，缺点是捕捉不到长距离关系。
 
-![cnn](doc\cnn.png)
+![cnn](./doc/cnn.png)
 
 ### Deep CNN
 
 在TextCNN的基础上加入了重复多次的池化-卷积-卷积操作，每经过一次池化，序列的长度就缩短一半，这样，越靠上的卷积层就越能提取出序列宏观层面的信息；且因为序列长度的减半，模型消耗的计算资源得到了有效的降低。
 
-![dpcnn](doc\dpcnn.png)
+![dpcnn](./doc/dpcnn.png)
 
 图中的Shallow CNN就是TextCNN.
 
@@ -78,15 +78,15 @@ python .\run.py --config .\config\BERT.json
 
 用双向LSTM进行文本分类，取其最后一个时间步上的隐状态过分类器。
 
-在短文本分类中很有效，如果文章很长，这样做会丢失大量中间信息。
+在短文本分类中很有效，但如果文章很长，这样做会丢失大量中间信息。
 
-![rnn](doc\rnn.png)
+![rnn](./doc/rnn.png)
 
 ### BiLSTM with Attention
 
 为了解决BiLSTM的问题，引入注意力机制。取双向LSTM所有时间步的隐状态输入Self Attention层，将Attention层的输出沿着时间步求和。
 
-![attn](doc\attn.png)
+![attn](./doc/attn.png)
 
 也可以在TextCNN的卷积层前面加self attention，但是我估计不会有质的提升，不做了。
 
@@ -96,7 +96,7 @@ python .\run.py --config .\config\BERT.json
 
 其实就是把TextCNN中的卷积层换成双向LSTM。
 
-![rcnn](doc\rcnn.png)
+![rcnn](./doc/rcnn.png)
 
 ### BERT
 
