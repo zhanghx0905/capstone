@@ -5,8 +5,12 @@
 	"embedding_len" : 300,
 	"padding_len": 32,
 	"batch_size" : 128,
-	"num_epochs": 20,
+	"num_epochs": 15,
 	"lr": 0.001,
 	"display_per_batch": 100,
-	"weight_decay": 0
+	"weight_decay": 0,
+	"model" : {
+		"out_channels": 250,
+		"layer": 3
+	}
 }

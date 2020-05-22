@@ -1,11 +1,11 @@
 {
 	"load": 0,
-	"type": "FastText",
-	"output_path": "../model/FastText",
+	"type": "fastText",
+	"output_path": "../model/fastText",
 	"embedding_len" : 300,
-	"padding_len": 36,
-	"batch_size" : 256,
-	"num_epochs": 40,
+	"padding_len": 32,
+	"batch_size" : 128,
+	"num_epochs": 20,
 	"lr": 0.001,
 	"weight_decay": 0,
 	"display_per_batch": 100
