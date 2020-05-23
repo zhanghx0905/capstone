@@ -3,7 +3,6 @@ import pickle
 
 import numpy as np
 import torch
-import torch.utils.data as data
 from pytorch_pretrained_bert import BertTokenizer
 
 UNK, PAD = '[UNK]', '[PAD]'  # 未知，padding符号
@@ -11,18 +10,20 @@ train_path = "../data/train.txt"
 dev_path = "../data/dev.txt"
 test_path = "../data/test.txt"
 word2vec_path = "../data/sgns.sogou.char"
-vocab_path = "../data/vocab.pkl"
 trimmed_path = "../data/embedding.npz"
+vocab_path = "../data/vocab.pkl"
+vocab_size = 122777  # a prime number for hash
 class_list = [x.strip()
               for x in open('..\data\class.txt', encoding='utf8').readlines()]
 
 bert_path = "../data/bert"
 CLS = '[CLS]'  # for bert classification
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def tokenizer(x):
-    return [y for y in x]  # per char
+    return [y for y in x]
 
 
 def build_vocab(file_path):
@@ -33,41 +34,83 @@ def build_vocab(file_path):
             for word in tokenizer(content):
                 vocab_dic[word] = vocab_dic.get(word, 0) + 1
         print(f"words tot: {len(vocab_dic)}")
-        vocab_list = sorted([_ for _ in vocab_dic.items()],
-                            key=lambda x: x[1], reverse=True)
+        vocab_list = sorted([_ for _ in vocab_dic.items()], key=lambda x: x[1], reverse=True)
         vocab_dic = {word_count[0]: idx for idx,
                      word_count in enumerate(vocab_list)}
         vocab_dic.update({UNK: len(vocab_dic), PAD: len(vocab_dic) + 1})
     return vocab_dic
 
 
-def load_data(input_path, pad_size):
-    texts, labels = [], []
+def load_word2id():
     if os.path.exists(vocab_path):
         word2id = pickle.load(open(vocab_path, 'rb'))
     else:
         word2id = build_vocab(train_path)
         pickle.dump(word2id, open(vocab_path, 'wb'))
+    return word2id
 
+
+def load_data(input_path, pad_size):
+    word2id = load_word2id()
+
+    tokens, labels = [], []
     with open(input_path, 'r', encoding='utf8') as f:
         for line in f.readlines():
             text, label = line.strip().split('\t')
             labels.append(int(label))
 
-            token = []
-            for word in tokenizer(text)[:pad_size]:
-                token.append(word2id.get(word, word2id.get(UNK)))
+            token_ids = []
+            for token in tokenizer(text)[:pad_size]:
+                token_ids.append(word2id.get(token, word2id[UNK]))
             if len(token) < pad_size:  # padding
-                token.extend([word2id[PAD]] * (pad_size - len(token)))
-            texts.append(token)
+                token_ids.extend([word2id[PAD]] * (pad_size - len(token_ids)))
+            tokens.append(token_ids)
 
-    texts = torch.tensor(texts, dtype=torch.long).to(device)
-    labels = torch.tensor(labels, dtype=torch.long).to(device)
-    return texts, labels
+    tokens = torch.LongTensor(tokens).to(device)
+    labels = torch.LongTensor(labels).to(device)
+    return tokens, labels
 
 
-def load_data_for_bert(input_path, pad_size):
-    texts, masks, labels = [], [], []
+def load_data_for_fastText(input_path, pad_size):
+    word2id = load_word2id()
+
+    def bigram_hash(sequence, index):
+        t1 = sequence[index - 1] if index - 1 >= 0 else 0
+        return (t1 * 16341163) % vocab_size
+
+    def trigram_hash(sequence, index):
+        t1 = sequence[index - 1] if index - 1 >= 0 else 0
+        t2 = sequence[index - 2] if index - 2 >= 0 else 0
+        return (t2 * 16341163 * 12255871 + t1 * 16341163) % vocab_size
+
+    tokens, tokens_bigram, tokens_trigram, labels = [], [], [], []
+    with open(input_path, 'r', encoding='utf8') as f:
+        for line in f.readlines():
+            text, label = line.strip().split('\t')
+            labels.append(int(label))
+
+            token_ids = []
+            for token in tokenizer(text)[:pad_size]:
+                token_ids.append(word2id.get(token, word2id[UNK]))
+            if len(token) < pad_size:  # padding
+                token_ids.extend([word2id[PAD]] * (pad_size - len(token_ids)))
+            # get ngram     
+            token_ids_bigram = [bigram_hash(token_ids, index) for index in range(pad_size)]
+            token_ids_trigram = [trigram_hash(token_ids, index) for index in range(pad_size)]
+
+            tokens.append(token_ids)
+            tokens_bigram.append(token_ids_bigram)
+            tokens_trigram.append(token_ids_trigram)
+
+    tokens = torch.LongTensor(tokens).to(device)
+    tokens_bigram = torch.LongTensor(tokens_bigram).to(device)
+    tokens_trigram = torch.LongTensor(tokens_trigram).to(device) 
+    labels = torch.LongTensor(labels).to(device)
+    return tokens, tokens_bigram, tokens_trigram, labels        
+    
+
+def load_data_for_BERT(input_path, pad_size):
+    tokens, masks, labels = [], [], []
     tokenizer = BertTokenizer.from_pretrained(bert_path)
     with open(input_path, 'r', encoding='utf8') as f:
         for line in f.readlines():
@@ -85,42 +128,41 @@ def load_data_for_bert(input_path, pad_size):
             else:
                 mask = [1] * pad_size
                 token_ids = token_ids[:pad_size]
-            texts.append(token_ids)
+            tokens.append(token_ids)
             masks.append(mask)
-    texts = torch.tensor(texts, dtype=torch.long).to(device)
-    masks = torch.tensor(masks, dtype=torch.long).to(device)
-    labels = torch.tensor(labels, dtype=torch.long).to(device)
-    return texts, masks, labels
+    
+    tokens = torch.LongTensor(tokens).to(device)
+    masks = torch.LongTensor(masks).to(device)
+    labels = torch.LongTensor(labels).to(device)
+    return tokens, masks, labels
 
 
-class NewsDataset(data.Dataset):
-    def __init__(self, input_path, padding_len, for_bert=False):
+class NewsDataset(torch.utils.data.Dataset):
+    def __init__(self, input_path, padding_len, mode=None):
         super().__init__()
-        self.for_bert = for_bert
-        if for_bert:
-            self.texts, self.masks, self.labels = load_data_for_bert(
-                input_path, padding_len)
+        self.mode = mode
+        if mode == "bert":
+            self.tokens, self.masks, self.labels = load_data_for_BERT(input_path, padding_len)
+        elif mode == 'fastText':
+            self.tokens, self.tokens_bigram, self.tokens_trigram, self.labels = load_data_for_fastText(input_path, padding_len)
         else:
-            self.texts, self.labels = load_data(
-                input_path, padding_len)
+            self.tokens, self.labels = load_data(input_path, padding_len)
         print(f"loaded {input_path}")
 
     def __len__(self):
         return len(self.labels)
 
     def __getitem__(self, index):
-        if self.for_bert:
-            return (self.texts[index], self.masks[index]), self.labels[index]
-        return self.texts[index], self.labels[index]
+        if self.mode == 'bert':
+            return (self.tokens[index], self.masks[index]), self.labels[index]
+        if self.mode == 'fastText':
+            return (self.tokens[index], self.tokens_bigram[index], self.tokens_trigram[index]), self.labels[index]
+        return self.tokens[index], self.labels[index]
 
 
 def main():
     emb_dim = 300
-    if os.path.exists(vocab_path):
-        word2id = pickle.load(open(vocab_path, 'rb'))
-    else:
-        word2id = build_vocab(train_path)
-        pickle.dump(word2id, open(vocab_path, 'wb'))
+    word2id = load_word2id()
 
     embeddings = np.random.rand(len(word2id), emb_dim)
     with open(word2vec_path, 'r', encoding='utf8') as f:

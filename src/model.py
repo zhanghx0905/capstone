@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from dataset import trimmed_path, bert_path, class_list
+from dataset import trimmed_path, bert_path, class_list, vocab_size
 from pytorch_pretrained_bert import BertModel
 
 embedding_pretrained = torch.tensor(
@@ -32,18 +32,35 @@ def init_network(model, method='xavier', exclude=['embedding']):
 
 
 class fastText(nn.Module):
-    def __init__(self, embedding_len, padding_len):
+    def __init__(self, embedding_len, args):
         super().__init__()
-        self.avg = nn.AvgPool1d(padding_len)
-        self.fc = nn.Linear(embedding_len, class_num)
-        self.embedding = nn.Embedding.from_pretrained(
-            embedding_pretrained, freeze=False)
+        self.ngram = args['ngram']
+        assert self.ngram in [1, 2, 3]
 
-    def forward(self, texts):  # batch, padding, embedding
-        embedding = self.embedding(texts)
-        x = torch.transpose(embedding, 1, 2)  # batch, embedding, padding
-        x = self.avg(x)  # batch, embedding, 1
-        x = self.fc(x.squeeze(2))
+        self.embedding = nn.Embedding(embedding_pretrained.shape[0], embedding_len)
+        # self.embedding = nn.Embedding.from_pretrained(embedding_pretrained, freeze=False)
+        if self.ngram >= 2:
+            self.embedding_bi = nn.Embedding(vocab_size, embedding_len)
+        if self.ngram == 3:
+            self.embedding_tri = nn.Embedding(vocab_size, embedding_len)
+        self.fc = nn.Sequential(
+            nn.Dropout(args['dropout']),
+            nn.Linear(embedding_len * self.ngram, args['hidden']),
+            nn.ReLU(),
+            nn.Linear(args['hidden'], class_num))
+    
+    def forward(self, tokens):
+        embedding = self.embedding(tokens[0])  # batch, padding, embedding
+        if self.ngram == 2:
+            embedding_bi = self.embedding_bi(tokens[1])
+            embedding = torch.cat((embedding, embedding_bi), -1)
+        if self.ngram == 3:
+            embedding_bi = self.embedding_bi(tokens[1])
+            embedding_tri = self.embedding_tri(tokens[2])
+            embedding = torch.cat((embedding, embedding_bi, embedding_tri), -1)
+        
+        x = torch.mean(embedding, dim=1)
+        x = self.fc(x)
         return x
     
     def init_weight(self):
@@ -63,8 +80,8 @@ class LSTM(nn.Module):
         self.embedding = nn.Embedding.from_pretrained(
             embedding_pretrained, freeze=False)
 
-    def forward(self, texts):
-        embedding = self.embedding(texts)
+    def forward(self, tokens):
+        embedding = self.embedding(tokens)
         x, _ = self.lstm(embedding)
         x = self.fc(x[:, -1, :])  # bs, hidden*2
         return x
@@ -102,8 +119,8 @@ class LSTM_Att(nn.Module):
         self.attention = SelfAttention(args['hidden'] * 2)
         self.fc = nn.Linear(args['hidden'] * 2, class_num)
 
-    def forward(self, texts):
-        embedding = self.embedding(texts)
+    def forward(self, tokens):
+        embedding = self.embedding(tokens)
         x, _ = self.lstm(embedding)
         x = self.attention(x)
         x = torch.sum(x, dim=1)
@@ -132,9 +149,43 @@ class TextCNN(nn.Module):
         x = F.max_pool1d(x, x.size(2)).squeeze(2)
         return x
 
-    def forward(self, texts):
-        embedding = self.embedding(texts)
+    def forward(self, tokens):
+        embedding = self.embedding(tokens)
         x = embedding.unsqueeze(1)  # (bs, 1, padding, embedding)
+        x = [self.conv_and_pool(conv, x)
+             for conv in self.convs]  # (bs, oc) * len(ks)
+        x = torch.cat(x, 1)  # (bs, oc*len(ks))
+        x = self.dropout(x)
+        x = self.fc(x)
+        return x
+
+    def init_weight(self):
+        init_network(self)
+
+
+class CNN_Att(nn.Module):
+    def __init__(self, embedding_len, args):
+        super().__init__()
+        self.attn = SelfAttention(embedding_len)
+        self.convs = nn.ModuleList([
+            nn.Conv2d(1, args['out_channels'], (ks, embedding_len))
+            for ks in args['kernal_size']
+        ])
+        self.fc = nn.Linear(args['out_channels'] *
+                            len(args['kernal_size']), class_num)
+        self.dropout = nn.Dropout(args['dropout'])
+        self.embedding = nn.Embedding.from_pretrained(
+            embedding_pretrained, freeze=False)
+
+    def conv_and_pool(self, conv_layer, x):
+        x = F.relu(conv_layer(x)).squeeze(3)
+        x = F.max_pool1d(x, x.size(2)).squeeze(2)
+        return x
+
+    def forward(self, tokens):
+        embedding = self.embedding(tokens)
+        x = self.attn(embedding)
+        x = x.unsqueeze(1)  # (bs, 1, padding, embedding)
         x = [self.conv_and_pool(conv, x)
              for conv in self.convs]  # (bs, oc) * len(ks)
         x = torch.cat(x, 1)  # (bs, oc*len(ks))
@@ -149,7 +200,7 @@ class TextCNN(nn.Module):
 class DPCNN(nn.Module):
     def __init__(self, embedding_len, args):
         super().__init__()
-        self.args = args
+        self.conv_layer = args['layer']
         self.conv_region = nn.Conv2d(
             1, self.args['out_channels'], (3, embedding_len), padding=(1, 0))
         self.conv2 = nn.Sequential(
@@ -162,15 +213,15 @@ class DPCNN(nn.Module):
         self.fc = nn.Linear(self.args['out_channels'], class_num)
         self.max_pool = nn.MaxPool1d(3, 2)
 
-    def forward(self, texts):
-        embedding = self.embedding(texts)
+    def forward(self, tokens):
+        embedding = self.embedding(tokens)
         x = embedding.unsqueeze(1)
         px = self.conv_region(x).squeeze(3)  # (bs, oc, len)
 
         x = self.conv2(px)
         x = px + x
 
-        for _ in range(self.args['layer']):
+        for _ in range(self.conv_layer):
             px = self.max_pool(x)
             x = self.conv2(px)
             x = px + x
@@ -194,8 +245,8 @@ class TextRCNN(nn.Module):
         self.embedding = nn.Embedding.from_pretrained(
             embedding_pretrained, freeze=False)
 
-    def forward(self, texts):
-        embedding = self.embedding(texts)
+    def forward(self, tokens):
+        embedding = self.embedding(tokens)
         states, _ = self.lstm(embedding)  # bs, padding, hidden*2
         x = torch.cat((states, embedding), 2)  # bs, padding, hidden*2+embedding
         x = F.relu(x)
@@ -206,7 +257,7 @@ class TextRCNN(nn.Module):
         init_network(self, exclude=['embedding', "lstm.weight"])
 
 
-class BERT_Layer(nn.Module):
+class BERTLayer(nn.Module):
     def __init__(self, requires_grad=False):
         super().__init__()
         self.bert = BertModel.from_pretrained(bert_path)
@@ -222,7 +273,7 @@ class BERT_Layer(nn.Module):
 class BERT(nn.Module):
     def __init__(self, args):
         super().__init__()
-        self.bert = BERT_Layer(True)
+        self.bert = BERTLayer(True)
         self.fc = nn.Linear(args['hidden'], class_num)
 
     def forward(self, x):

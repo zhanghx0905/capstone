@@ -4,7 +4,6 @@ from os.path import join
 
 import numpy as np
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from dataset import NewsDataset, train_path, test_path, dev_path, device
@@ -31,12 +30,13 @@ def main():
     args = parse()
 
     model_path = join(args['output_path'], 'model.pkl')
-    for_bert = False
+    mode = None
 
     if args['type'] == "TextCNN":
         net = TextCNN(args['embedding_len'], args['model'])
     elif args['type'] == "fastText":
-        net = fastText(args['embedding_len'], args['padding_len'])
+        net = fastText(args['embedding_len'], args['model'])
+        mode = 'fastText'
     elif args['type'] == "TextRCNN":
         net = TextRCNN(args['embedding_len'], args['model'])
     elif args['type'] == "LSTM":
@@ -47,7 +47,7 @@ def main():
         net = DPCNN(args['embedding_len'], args['model'])
     elif args['type'] == "BERT":
         net = BERT(args['model'])
-        for_bert = True
+        mode = 'bert'
     else:
         raise ValueError
 
@@ -59,8 +59,8 @@ def main():
         net.init_weight()
 
     if args['num_epochs'] > 0:
-        train_set = NewsDataset(train_path, args['padding_len'], for_bert)
-        dev_set = NewsDataset(dev_path, args['padding_len'], for_bert)
+        train_set = NewsDataset(train_path, args['padding_len'], mode)
+        dev_set = NewsDataset(dev_path, args['padding_len'], mode)
         train_data_loader = DataLoader(train_set, batch_size=args['batch_size'], shuffle=True) 
         dev_data_loader = DataLoader(dev_set, batch_size=args['batch_size'], shuffle=False)
 
@@ -69,7 +69,7 @@ def main():
         torch.save(best_net, model_path)
         net.load_state_dict(best_net)
 
-    test_data = NewsDataset(test_path, args['padding_len'], for_bert)
+    test_data = NewsDataset(test_path, args['padding_len'], mode)
     test_data_loader = DataLoader(dataset=test_data, batch_size=args['batch_size'], shuffle=False)
     test(net, test_data_loader)
 
