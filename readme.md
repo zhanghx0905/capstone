@@ -14,23 +14,21 @@
 
 以测试集准确率为优化指标。所有的模型都是char-level的，没有分词。
 
+除了BERT以外都是最终结果了。考虑到软硬件的不同，不保证100%可复现，之后会在网盘上传模型。
+
 | Model    | Acc    | 注                                                  |
 | -------- | ------ | ----------------------------------------------------- |
-| fastText (bow) | 90.01% |                                               |
+| fastText (bow) | 90.01% | 随机初始化词向量 |
 | fastText(2-gram) | 90.01% |  |
 | fastText(3-gram) | 92.54% |  |
-| TextCNN  | 91.59% |                |
+| CNN | 91.46% |  |
 | DPCNN    | 92.00% | Repeat Layer = 3 |
 | BiLSTM | 91.58% |                                                       |
 | BiLSTM with Attention | 91.60% ||
 | TextRCNN | 91.79% | BiLSTM + max pooling                                  |
-| BERT  | 94.14% | [来源](https://github.com/ymcui/Chinese-BERT-wwm)，只训练了5个epoch |
+| BERT-base | 94.24% | [来源](https://github.com/ymcui/Chinese-BERT-wwm) |
 
 fastText从2gram到3gram准确率有很大的提高，说明相邻3个字的语义对于分类非常关键。
-
-TODO：
-
-继续训练bert。
 
 ## Usage
 
@@ -56,15 +54,17 @@ python .\run.py --config .\config\BERT.json
 
 [fastText](https://arxiv.org/pdf/1607.01759.pdf)是一种简洁高效的文本分类模型，其思路是将所有输入文本的(也可包含2-gram和3-gram信息)词向量取平均后，经过一个MLP输出。虽然简单，但往往比许多深度模型更有效。
 
-如果使用全部2-gram或3-gram，则词表太大，可以用哈希解决这个问题。
+如果使用全部2-gram或3-gram，则词表太大，比如在我们这个数据集上单字符有不到5000个，2-gram和3-gram却分别有50万和数百万个。原论文解决这个问题的办法是哈希。
+
+fastText也是训练词向量的方法之一。
 
 ![fastText](./doc/fastText.png)
 
 ### TextCNN
 
-[TextCNN](https://arxiv.org/abs/1408.5882)通过对词向量序列的卷积操作，提取输入文本的2-gram，3-gram乃至n-gram信息，沿着每个卷积核的输出（时间步）做max pooling，用dropout防止过拟合。
+[TextCNN](https://arxiv.org/abs/1408.5882)通过对词向量序列的卷积操作，提取输入文本的2-gram，3-gram乃至n-gram信息，沿着每个卷积核的输出（时间步）做max pooling，在全连接层前用dropout防止过拟合。
 
-卷积层能有效提取局部的语义信息，缺点是捕捉不到长距离关系。
+卷积层能有效提取局部的语义信息，缺点之一是捕捉不到长距离关系。
 
 ![cnn](./doc/cnn.png)
 
@@ -102,5 +102,5 @@ python .\run.py --config .\config\BERT.json
 
 ### BERT
 
-性能上的天花板，原理我还在琢磨。
+性能上的天花板，原理就不管了。
 

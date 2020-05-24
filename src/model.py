@@ -200,7 +200,7 @@ class CNN_Att(nn.Module):
 class DPCNN(nn.Module):
     def __init__(self, embedding_len, args):
         super().__init__()
-        self.conv_layer = args['layer']
+        self.args = args
         self.conv_region = nn.Conv2d(
             1, self.args['out_channels'], (3, embedding_len), padding=(1, 0))
         self.conv2 = nn.Sequential(
@@ -221,7 +221,7 @@ class DPCNN(nn.Module):
         x = self.conv2(px)
         x = px + x
 
-        for _ in range(self.conv_layer):
+        for _ in range(self.args['layer']):
             px = self.max_pool(x)
             x = self.conv2(px)
             x = px + x
