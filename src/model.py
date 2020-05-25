@@ -163,40 +163,6 @@ class TextCNN(nn.Module):
         init_network(self)
 
 
-class CNN_Att(nn.Module):
-    def __init__(self, embedding_len, args):
-        super().__init__()
-        self.attn = SelfAttention(embedding_len)
-        self.convs = nn.ModuleList([
-            nn.Conv2d(1, args['out_channels'], (ks, embedding_len))
-            for ks in args['kernal_size']
-        ])
-        self.fc = nn.Linear(args['out_channels'] *
-                            len(args['kernal_size']), class_num)
-        self.dropout = nn.Dropout(args['dropout'])
-        self.embedding = nn.Embedding.from_pretrained(
-            embedding_pretrained, freeze=False)
-
-    def conv_and_pool(self, conv_layer, x):
-        x = F.relu(conv_layer(x)).squeeze(3)
-        x = F.max_pool1d(x, x.size(2)).squeeze(2)
-        return x
-
-    def forward(self, tokens):
-        embedding = self.embedding(tokens)
-        x = self.attn(embedding)
-        x = x.unsqueeze(1)  # (bs, 1, padding, embedding)
-        x = [self.conv_and_pool(conv, x)
-             for conv in self.convs]  # (bs, oc) * len(ks)
-        x = torch.cat(x, 1)  # (bs, oc*len(ks))
-        x = self.dropout(x)
-        x = self.fc(x)
-        return x
-
-    def init_weight(self):
-        init_network(self)
-
-
 class DPCNN(nn.Module):
     def __init__(self, embedding_len, args):
         super().__init__()

@@ -8,25 +8,27 @@
 
 `src/` 源代码
 
+`model/` 训练好的模型和日志
+
 [word2vec预训练词向量](https://pan.baidu.com/s/1pUqyn7mnPcUmzxT64gGpSw)，生成的词表已经保存在data文件夹下。
 
 ## Performance
 
 以测试集准确率为优化指标。所有的模型都是char-level的，没有分词。
 
-除了BERT以外都是最终结果了。考虑到软硬件的不同，不保证100%可复现，之后会在网盘上传模型。
+都是最终结果了。考虑到软硬件的不同，不保证100%可复现，`model`文件夹下载[地址](https://cloud.tsinghua.edu.cn/d/115cba163e02481e9924/)。
 
 | Model    | Acc    | 注                                                  |
 | -------- | ------ | ----------------------------------------------------- |
 | fastText (bow) | 90.01% | 随机初始化词向量 |
 | fastText(2-gram) | 90.01% |  |
 | fastText(3-gram) | 92.54% |  |
-| CNN | 91.46% |  |
+| TextCNN | 91.46% |  |
 | DPCNN    | 92.00% | Repeat Layer = 3 |
 | BiLSTM | 91.58% |                                                       |
 | BiLSTM with Attention | 91.60% ||
 | TextRCNN | 91.79% | BiLSTM + max pooling                                  |
-| BERT-base | 94.24% | [来源](https://github.com/ymcui/Chinese-BERT-wwm) |
+| BERT | 94.61% | [来源](https://github.com/ymcui/Chinese-BERT-wwm), BERT-wwm-ext |
 
 fastText从2gram到3gram准确率有很大的提高，说明相邻3个字的语义对于分类非常关键。
 
@@ -68,7 +70,7 @@ fastText也是训练词向量的方法之一。
 
 ![cnn](./doc/cnn.png)
 
-### DPCNN
+### Deep Pyramid CNN
 
 在TextCNN的基础上加入了重复多次的池化-卷积-卷积操作，每经过一次池化，序列的长度就缩短一半，这样，越靠上的卷积层就越能提取出序列宏观层面的信息；且因为序列长度的减半，模型消耗的计算资源得到了有效的降低。
 
