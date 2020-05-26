@@ -29,12 +29,12 @@
 | fastText (bow) | 90.01% | 随机初始化词向量 |
 | fastText(2-gram) | 90.01% |  |
 | fastText(3-gram) | 92.54% |  |
-| TextCNN | 91.46% |  |
+| TextCNN | 91.48% |  |
 | DPCNN    | 92.00% | Repeat Layer = 3 |
 | BiLSTM | 91.58% |                                                       |
 | BiLSTM with Attention | 91.60% ||
-| TextRCNN | 91.79% | BiLSTM + max pooling                                  |
-| BERT | 94.61% | [来源](https://github.com/ymcui/Chinese-BERT-wwm), BERT-wwm-ext |
+| TextRCNN | 91.79% |                                   |
+| BERT | 94.61% | BERT-wwm-ext |
 
 fastText从2gram到3gram准确率有很大的提高，说明相邻3个字的语义对于分类非常关键。
 

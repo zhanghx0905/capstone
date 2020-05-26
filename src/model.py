@@ -135,23 +135,30 @@ class TextCNN(nn.Module):
     def __init__(self, embedding_len, args):
         super().__init__()
         self.convs = nn.ModuleList([
-            nn.Conv2d(1, args['out_channels'], (ks, embedding_len))
+            nn.Conv2d(1, args['out_channels'], (ks, 2*embedding_len))
             for ks in args['kernal_size']
         ])
         self.fc = nn.Linear(args['out_channels'] *
                             len(args['kernal_size']), class_num)
         self.dropout = nn.Dropout(args['dropout'])
-        self.embedding = nn.Embedding.from_pretrained(
-            embedding_pretrained, freeze=False)
+        self.embedding = nn.ModuleList([
+            nn.Embedding.from_pretrained(embedding_pretrained, freeze=False),
+            nn.Embedding.from_pretrained(embedding_pretrained, freeze=True)
+            ])
 
     def conv_and_pool(self, conv_layer, x):
         x = F.relu(conv_layer(x)).squeeze(3)
         x = F.max_pool1d(x, x.size(2)).squeeze(2)
         return x
 
+    def do_embedding(self, tokens):
+        embedding = [embed(tokens) for embed in self.embedding]
+        embedding = torch.cat(embedding, -1)  # bs, padding, 2*embedding
+        return embedding
+
     def forward(self, tokens):
-        embedding = self.embedding(tokens)
-        x = embedding.unsqueeze(1)  # (bs, 1, padding, embedding)
+        embedding = self.do_embedding(tokens)
+        x = embedding.unsqueeze(1)  # (bs, 1, padding, 2*embedding)
         x = [self.conv_and_pool(conv, x)
              for conv in self.convs]  # (bs, oc) * len(ks)
         x = torch.cat(x, 1)  # (bs, oc*len(ks))
