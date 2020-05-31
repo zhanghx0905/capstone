@@ -8,4 +8,4 @@ python ./run.py --config ../config/RNN.json
 python ./run.py --config ../config/RNN_Att.json
 python ./run.py --config ../config/RCNN.json
 
-#python ./run.py --config ../config/BERT.json
+python ./run.py --config ../config/BERT.json

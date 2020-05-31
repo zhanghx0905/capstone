@@ -34,6 +34,7 @@
 | TextRCNN | 91.79% |                                   |
 | BERT-wwm-ext | 94.61% | [来源](https://github.com/ymcui/Chinese-BERT-wwm) |
 | RoBERTa-wwm-ext | 94.89% |  |
+| TextGCN |  | |
 
 ## Usage
 
