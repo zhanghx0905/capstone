@@ -69,7 +69,7 @@ def main():
 
         torch.save(best_net, model_path)
         net.load_state_dict(best_net)
-
+    print(f"Model: {args['type']}")
     test_data = NewsDataset(test_path, args['padding_len'], mode)
     test_data_loader = DataLoader(dataset=test_data, batch_size=args['batch_size'], shuffle=False)
     test(net, test_data_loader)

@@ -37,7 +37,8 @@ class fastText(nn.Module):
         self.ngram = args['ngram']
         assert self.ngram in [1, 2, 3]
 
-        self.embedding = nn.Embedding(embedding_pretrained.shape[0], embedding_len)
+        self.embedding = nn.Embedding(
+            embedding_pretrained.shape[0], embedding_len)
         # self.embedding = nn.Embedding.from_pretrained(embedding_pretrained, freeze=False)
         if self.ngram >= 2:
             self.embedding_bi = nn.Embedding(vocab_size, embedding_len)
@@ -48,7 +49,7 @@ class fastText(nn.Module):
             nn.Linear(embedding_len * self.ngram, args['hidden']),
             nn.ReLU(),
             nn.Linear(args['hidden'], class_num))
-    
+
     def forward(self, tokens):
         embedding = self.embedding(tokens[0])  # batch, padding, embedding
         if self.ngram == 2:
@@ -58,11 +59,11 @@ class fastText(nn.Module):
             embedding_bi = self.embedding_bi(tokens[1])
             embedding_tri = self.embedding_tri(tokens[2])
             embedding = torch.cat((embedding, embedding_bi, embedding_tri), -1)
-        
+
         x = torch.mean(embedding, dim=1)
         x = self.fc(x)
         return x
-    
+
     def init_weight(self):
         init_network(self)
 
@@ -144,7 +145,7 @@ class TextCNN(nn.Module):
         self.embedding = nn.ModuleList([
             nn.Embedding.from_pretrained(embedding_pretrained, freeze=False),
             nn.Embedding.from_pretrained(embedding_pretrained, freeze=True)
-            ])
+        ])
 
     def conv_and_pool(self, conv_layer, x):
         x = F.relu(conv_layer(x)).squeeze(3)
@@ -178,7 +179,8 @@ class DPCNN(nn.Module):
             1, self.args['out_channels'], (3, embedding_len), padding=(1, 0))
         self.conv2 = nn.Sequential(
             nn.ReLU(),
-            nn.Conv1d(self.args['out_channels'], self.args['out_channels'], 3, padding=1),
+            nn.Conv1d(self.args['out_channels'],
+                      self.args['out_channels'], 3, padding=1),
             nn.ReLU(),
             nn.Conv1d(self.args['out_channels'], self.args['out_channels'], 3, padding=1))
         self.embedding = nn.Embedding.from_pretrained(
@@ -201,7 +203,7 @@ class DPCNN(nn.Module):
         x = F.max_pool1d(x, x.size(2)).squeeze(2)  # (bs, oc)
         x = self.fc(x)
         return x
-        
+
     def init_weight(self):
         init_network(self)
 
@@ -221,7 +223,8 @@ class TextRCNN(nn.Module):
     def forward(self, tokens):
         embedding = self.embedding(tokens)
         states, _ = self.lstm(embedding)  # bs, padding, hidden*2
-        x = torch.cat((states, embedding), 2)  # bs, padding, hidden*2+embedding
+        # bs, padding, hidden*2+embedding
+        x = torch.cat((states, embedding), 2)
         x = F.relu(x)
         x, _ = torch.max(x, dim=1)  # bs, hidden*2+embedding
         return self.fc(x)
