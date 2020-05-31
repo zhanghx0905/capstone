@@ -1,0 +1,1 @@
+代码基于https://github.com/iworldtong/text_gcn.pytorch，仅做学习用途。

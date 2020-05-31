@@ -18,7 +18,7 @@
 
 ## Performance
 
-以测试集准确率为优化指标。所有的模型都是char-level的，没有分词。
+以测试集准确率为优化指标。所有的模型都是char-level的。
 
 考虑到软硬件的不同，不保证100%可复现，`model`文件夹下载[地址](https://cloud.tsinghua.edu.cn/d/115cba163e02481e9924/)。
 
@@ -34,7 +34,15 @@
 | TextRCNN | 91.79% |                                   |
 | BERT-wwm-ext | 94.61% | [来源](https://github.com/ymcui/Chinese-BERT-wwm) |
 | RoBERTa-wwm-ext | 94.89% |  |
-| TextGCN |  | |
+
+内存有限，GCN的测试仅取数据集的十分之一进行，即20000训练/验证集，1000测试集。
+
+| Model         | Acc    |
+| ------------- | ------ |
+| fastText(bow) | 85.90% |
+| TextGCN       | 83.30% |
+
+GCN的效果不佳，去停用词、低频词、调window size都不管用。
 
 ## Usage
 
@@ -45,3 +53,5 @@ bash test.sh
 ```
 
 改变json文件中的`load`和`num_epochs`，可以选择是否加载模型和训练的epoch数。
+
+对于gcn，运行`text_gcn/train.sh`进行训练。

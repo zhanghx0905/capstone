@@ -2,7 +2,6 @@
 /data/bert/pytorch_model.bin
 /data/bert/vocab.txt
 /data/bert/bert_config.json
-/data/bert/bert_wwm/
 /src/__pycache__
-/src/.VSCodeCounter
-/text_gcn
+/text_gcn/data
+/text_gcn/__pycache__
