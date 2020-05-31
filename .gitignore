@@ -3,5 +3,5 @@
 /data/bert/vocab.txt
 /data/bert/bert_config.json
 /src/__pycache__
-/text_gcn/data
+/text_gcn/data/corpus
 /text_gcn/__pycache__
