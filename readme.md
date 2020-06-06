@@ -1,4 +1,6 @@
-# Capstone Project
+# Readme
+
+[下载](https://cloud.tsinghua.edu.cn/d/115cba163e02481e9924/)完整版程序。
 
 ## 文件结构
 
@@ -20,8 +22,6 @@
 
 以测试集准确率为优化指标。所有的模型都是char-level的。
 
-考虑到软硬件的不同，不保证100%可复现，`model`文件夹下载[地址](https://cloud.tsinghua.edu.cn/d/115cba163e02481e9924/)。
-
 | Model    | Acc    |                                                   |
 | -------- | ------ | ----------------------------------------------------- |
 | fastText (bow) | 90.01% |  |
@@ -42,11 +42,9 @@
 | fastText(bow) | 85.90% |
 | TextGCN       | 83.30% |
 
-GCN的效果不佳，去停用词、低频词、调window size都不管用。
-
 ## Usage
 
-将model文件夹解压到根目录后，在src文件夹下运行测试脚本。
+在src文件夹下运行测试脚本。
 
 ```shell
 bash test.sh
@@ -54,4 +52,11 @@ bash test.sh
 
 改变json文件中的`load`和`num_epochs`，可以选择是否加载模型和训练的epoch数。
 
-对于gcn，运行`text_gcn/train.sh`进行训练。
+对于gcn，在`text_gcn`文件夹下运行
+
+```
+python train.py r8
+```
+
+进行训练和测试。
+
