@@ -60,3 +60,16 @@ python train.py r8
 
 进行训练和测试。
 
+---
+
+## 传统统计学习方法
+
+contributed by vcvcvn
+
+- `Newcapstone.r`  模型运行以及结果
+
+- `func.r` 并行运算时要用到的函数
+
+## Usage
+
+进入`Newcapstone.r` 后，分段运行即可。
