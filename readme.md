@@ -11,7 +11,7 @@
 
 | Model    | Test Acc |
 | -------- | ------ |
-| Naive bayes | 90.93% |
+| Naive Bayes | 90.93% |
 | fastText (3-gram) | 92.54% |
 | TextCNN | 91.48% |
 | DPCNN    | 92.00% |
@@ -25,7 +25,7 @@
 
 | Model         | Acc    |
 | ------------- | ------ |
-| fastText(bow) | 85.90% |
+| Naive Bayes | 85.60% |
 | TextGCN       | 83.30% |
 
 ## Usage
