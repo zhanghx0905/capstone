@@ -1,7 +1,7 @@
 {
 	"load": 1,
 	"type": "fastText",
-	"output_path": "../model/fastText_tri",
+	"output_path": "../model/fastText",
 	"embedding_len" : 300,
 	"padding_len": 32,
 	"batch_size" : 30,

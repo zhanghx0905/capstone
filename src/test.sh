@@ -1,11 +1,9 @@
-python ./run.py --config ../config/FT.json
-python ./run.py --config ../config/FT_tri.json
+# run ML model
+python ./run_ml.py
 
-python ./run.py --config ../config/CNN.json
-python ./run.py --config ../config/DPCNN.json
-
-python ./run.py --config ../config/RNN.json
-python ./run.py --config ../config/RNN_Att.json
-python ./run.py --config ../config/RCNN.json
-
-python ./run.py --config ../config/BERT.json
+# run DL model
+for file in `ls ../config/ |grep "\.json$"`
+do
+	path="../config/"$file
+	python ./run.py --config $path
+done
