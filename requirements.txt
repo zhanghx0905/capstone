@@ -1,4 +1,4 @@
-numpy==1.18.3
+numpy==1.22.0
 scipy==1.4.1
 networkx==2.4
 jieba==0.42.1
