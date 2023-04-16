@@ -1,7 +1,5 @@
 # Readme
 
-[下载](https://cloud.tsinghua.edu.cn/d/ea00e70945cc431d866d/)完整版程序。
-
 ## 数据来源
 
 [THUNews](http://thuctc.thunlp.org/#%E4%B8%AD%E6%96%87%E6%96%87%E6%9C%AC%E5%88%86%E7%B1%BB%E6%95%B0%E6%8D%AE%E9%9B%86THUCNews)的一个子集，从10类新闻中随机抽取了20万条新闻标题，每类各2万条。按照18：1：1划分训练、验证、测试集。
